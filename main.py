@@ -1,60 +1,86 @@
-from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+import telegram
 import time
-from pyrogram.handlers import MessageHandler
 
-# Enter your API ID and API hash here
-api_id = 16844842
-api_hash = "f6b0ceec5535804be7a56ac71d08a5d4"
+# Telegram API token
+token = 'your_token_here'
 
-# Enter your bot token here
-bot_token = "5931504207:AAF-jzKC8USclrFYrtcaeAZifQcmEcwFNe4"
+# Initialize bot
+bot = telegram.Bot(token=token)
 
-app = Client("my_bot_session", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
+# Channel IDs
+channel_a_id = -1001668076927
+channel_b_id = -1001713208670
 
 # Start command
-@app.on_message(filters.command("start"))
-def start_command(client, message):
-    client.send_message(message.chat.id, "Hi, I am a message forwarder bot! To forward messages from channel A to channel B, please use the command /fr.")
+def start(update, context):
+    update.message.reply_text('Welcome to the message forwarding bot!')
 
 # Forward command
-@app.on_message(filters.command("fr"))
-def forward_command(client, message):
-    client.send_message(message.chat.id, "Please provide the starting and ending message links in channel A, separated by a space.")
-    client.add_handler(MessageHandler(forward_messages_callback, filters.regex(r'^\S+\s+\S+$')), message.chat.id, timeout=30)
+def forward(update, context):
+    # Check if bot is in channel A
+    if not bot.get_chat_member(chat_id=channel_a_id, user_id=bot.id).status == 'member':
+        update.message.reply_text('Please add the bot to the source channel first.')
+        return
+    # Check if bot is in channel B
+    if not bot.get_chat_member(chat_id=channel_b_id, user_id=bot.id).status == 'member':
+        update.message.reply_text('Please add the bot to the destination channel first.')
+        return
+    # Get starting and ending message links
+    update.message.reply_text('Please provide the starting and ending message links.')
+    context.user_data['start_link'] = True
+    context.user_data['end_link'] = False
 
-# Forward messages callback function
-def forward_messages_callback(client, message, user_data):
-    try:
-        # Extract starting and ending message links
-        start_link, end_link = message.text.split()
+# Message handler
+def message(update, context):
+    # Check if user is providing a link
+    if context.user_data.get('start_link', False):
+        context.user_data['start_link'] = False
+        context.user_data['end_link'] = True
+        context.user_data['start_message_id'] = int(update.message.text.split('/')[-1])
+        update.message.reply_text('Please provide the ending message link.')
+    elif context.user_data.get('end_link', False):
+        context.user_data['end_link'] = False
+        context.user_data['end_message_id'] = int(update.message.text.split('/')[-1])
+        update.message.reply_text('Starting message ID: {}\nEnding message ID: {}'.format(
+            context.user_data['start_message_id'],
+            context.user_data['end_message_id']
+        ))
+        # Forward messages
+        count = 0
+        for message in bot.iter_history(channel_a_id):
+            if message.message_id == context.user_data['start_message_id']:
+                # Start forwarding
+                update.message.reply_text('Started forwarding messages...')
+                while message.message_id <= context.user_data['end_message_id']:
+                    # Forward message
+                    bot.forward_message(chat_id=channel_b_id, from_chat_id=channel_a_id, message_id=message.message_id)
+                    count += 1
+                    # Check if break is needed
+                    if count % 200 == 0:
+                        update.message.reply_text('Forwarded {} messages. Taking a 5-minute break...'.format(count))
+                        time.sleep(300)
+                    # Get next message
+                    message = bot.get_messages(chat_id=channel_a_id, message_ids=message.message_id + 1)
+                # End forwarding
+                update.message.reply_text('Finished forwarding messages. Total messages forwarded: {}.'.format(count))
+                break
 
-        # Get the chat IDs of channels A and B
-        chat_a_id = -1001668076927 # Replace with the chat ID of channel A
-        chat_b_id = -1001713208670 # Replace with the chat ID of channel B
+# Main function
+def main():
+    # Create updater and dispatcher
+    updater = telegram.ext.Updater(token=token, use_context=True)
+    dispatcher = updater.dispatcher
 
-        # Check if bot is a member of channels A and B
-        chat_a_member = client.get_chat_member(chat_id=chat_a_id, user_id=app.get_me().id)
-        chat_b_member = client.get_chat_member(chat_id=chat_b_id, user_id=app.get_me().id)
-        if chat_a_member.status != "member" or chat_b_member.status != "member":
-            raise Exception("Bot is not a member of one or both of the channels.")
+    # Register handlers
+    dispatcher.add_handler(telegram.ext.CommandHandler('start', start))
+    dispatcher.add_handler(telegram.ext.CommandHandler('forward', forward))
+    dispatcher.add_handler(telegram.ext.MessageHandler(telegram.ext.Filters.text, message))
 
-        # Forward messages from channel A to channel B
-        msg_count = 0
-        for message in client.iter_history(chat_a_id, offset_date=0, offset_id=int(start_link[1:]), reverse=True):
-            if message.link in (start_link, end_link):
-                client.send_message(chat_b_id, message)
-                msg_count += 1
-                if msg_count == 200:
-                    time.sleep(300) # Wait for 5 minutes
-                    msg_count = 0
+    # Start polling
+    updater.start_polling()
 
-        # Notify the user when the forwarding is done
-        client.send_message(message.chat.id, "Message forwarding is complete!")
+    # Run until interrupted
+    updater.idle()
 
-    except Exception as e:
-        print(str(e))
-        client.send_message(message.chat.id, "An error occurred while forwarding messages. Please try again.")
-
-# Run the bot
-app.run()
+if __name__ == '__main__':
+   
