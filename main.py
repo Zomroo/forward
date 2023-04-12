@@ -2,7 +2,7 @@ import telegram
 import time
 
 # Telegram API token
-token = 'your_token_here'
+token = '5931504207:AAF-jzKC8USclrFYrtcaeAZifQcmEcwFNe4'
 
 # Initialize bot
 bot = telegram.Bot(token=token)
@@ -83,4 +83,4 @@ def main():
     updater.idle()
 
 if __name__ == '__main__':
-   
+    main()
