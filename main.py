@@ -19,10 +19,10 @@ def start_command(client, message):
 @app.on_message(filters.command("fr"))
 def forward_command(client, message):
     client.send_message(message.chat.id, "Please provide the starting and ending message links in channel A, separated by a space.")
-    client.register_next_step_handler(message, forward_messages)
+    app.ask(message.chat.id, forward_messages, timeout=30)
 
 # Forward messages function
-def forward_messages(message, client):
+def forward_messages(client, message):
     try:
         # Extract starting and ending message links
         start_link, end_link = message.text.split()
