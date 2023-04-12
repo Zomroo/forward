@@ -39,6 +39,11 @@ def handle_message(update, context):
                     context.bot.send_document(chat_id=CHANNEL_ID,
                                                document=attachment.file_id,
                                                caption=update.message.caption)
+                else:
+                    # forward any other type of attachment as a document
+                    context.bot.send_document(chat_id=CHANNEL_ID,
+                                               document=attachment.file_id,
+                                               caption=update.message.caption)
         else:
             # forward the text message to the specified channel
             context.bot.send_message(chat_id=CHANNEL_ID,
@@ -51,8 +56,6 @@ def handle_message(update, context):
     else:
         # if the bot is not waiting for a message, ignore the incoming message
         pass
-
-
 
 def main():
     # create a new bot object using the token
@@ -67,7 +70,7 @@ def main():
     dispatcher.add_handler(sendmsg_handler)
 
     # add a message handler to handle incoming messages
-    message_handler = MessageHandler(Filters.text & (~Filters.command), handle_message)
+    message_handler = MessageHandler(Filters.all, handle_message)
     dispatcher.add_handler(message_handler)
 
     # start the bot
