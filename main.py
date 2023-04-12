@@ -15,6 +15,9 @@ channel_b_id = -1001713208670
 # Start command
 def start(update, context):
     update.message.reply_text('Welcome to the message forwarding bot!')
+    context.user_data['start_link'] = False
+    context.user_data['end_link'] = False
+
 
 # Forward command
 def forward(update, context):
