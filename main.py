@@ -2,10 +2,10 @@ import telegram
 from telegram.ext import CommandHandler, MessageHandler, Filters, Updater
 
 # insert your Telegram bot token here
-BOT_TOKEN = 'your_bot_token'
+BOT_TOKEN = '5931504207:AAF-jzKC8USclrFYrtcaeAZifQcmEcwFNe4'
 
 # insert the ID of the channel you want to send messages to
-CHANNEL_ID = 'your_channel_id'
+CHANNEL_ID = '-1001713208670'
 
 # function to handle the /start command
 def start(update, context):
