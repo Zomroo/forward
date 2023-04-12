@@ -26,7 +26,7 @@ def handle_message(update, context):
         # check if the message being forwarded has any attachments
         if update.message.effective_attachment:
             # loop through all attachments and forward each one to the specified channel
-            for attachment in update.message.effective_attachment:
+            for attachment in update.message.effective_attachment or []:
                 if isinstance(attachment, telegram.Video):
                     context.bot.send_video(chat_id=CHANNEL_ID,
                                            video=attachment.file_id,
