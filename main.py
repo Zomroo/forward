@@ -23,22 +23,22 @@ def sendmsg(update, context):
 def handle_message(update, context):
     # check if the bot is waiting for a message
     if context.user_data.get('waiting_for_message', False):
-        # check if the message being forwarded is a video, photo, or document
-        if update.message.video:
-            # forward the video to the specified channel
-            context.bot.send_video(chat_id=CHANNEL_ID,
-                                   video=update.message.video.file_id,
-                                   caption=update.message.caption)
-        elif update.message.photo:
-            # forward the photo to the specified channel
-            context.bot.send_photo(chat_id=CHANNEL_ID,
-                                    photo=update.message.photo[-1].file_id,
-                                    caption=update.message.caption)
-        elif update.message.document:
-            # forward the document to the specified channel
-            context.bot.send_document(chat_id=CHANNEL_ID,
-                                       document=update.message.document.file_id,
-                                       caption=update.message.caption)
+        # check if the message being forwarded has any attachments
+        if update.message.effective_attachment:
+            # loop through all attachments and forward each one to the specified channel
+            for attachment in update.message.effective_attachment:
+                if isinstance(attachment, telegram.Video):
+                    context.bot.send_video(chat_id=CHANNEL_ID,
+                                           video=attachment.file_id,
+                                           caption=update.message.caption)
+                elif isinstance(attachment, telegram.PhotoSize):
+                    context.bot.send_photo(chat_id=CHANNEL_ID,
+                                            photo=attachment.file_id,
+                                            caption=update.message.caption)
+                elif isinstance(attachment, telegram.Document):
+                    context.bot.send_document(chat_id=CHANNEL_ID,
+                                               document=attachment.file_id,
+                                               caption=update.message.caption)
         else:
             # forward the text message to the specified channel
             context.bot.send_message(chat_id=CHANNEL_ID,
@@ -51,6 +51,7 @@ def handle_message(update, context):
     else:
         # if the bot is not waiting for a message, ignore the incoming message
         pass
+
 
 
 def main():
