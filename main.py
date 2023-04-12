@@ -19,7 +19,6 @@ def start_command(client, message):
 @app.on_message(filters.private)
 def forward_to_channel(client, message):
     # Replace 'database_channel' with the username or ID of the channel where you want to forward the messages
-    client.forward_messages('-1001713208670', message, as_copy=True)
-
+    client.forward_messages('-1001713208670', message.chat.id, message.message_id)
 
 app.run()
