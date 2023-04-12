@@ -1,6 +1,7 @@
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 import time
+from pyrogram.handlers import MessageHandler
 
 # Enter your API ID and API hash here
 api_id = 16844842
@@ -20,13 +21,13 @@ def start_command(client, message):
 @app.on_message(filters.command("fr"))
 def forward_command(client, message):
     client.send_message(message.chat.id, "Please provide the starting and ending message links in channel A, separated by a space.")
-    client.register_callback_query_handler(forward_messages_callback, message.chat.id, timeout=30)
+    client.add_handler(MessageHandler(forward_messages_callback, filters.regex(r'^\S+\s+\S+$'), pass_user_data=True), message.chat.id, timeout=30)
 
 # Forward messages callback function
-def forward_messages_callback(client, callback_query):
+def forward_messages_callback(client, message, user_data):
     try:
         # Extract starting and ending message links
-        start_link, end_link = callback_query.data.split()
+        start_link, end_link = message.text.split()
 
         # Get the chat IDs of channels A and B
         chat_a_id = -1001668076927 # Replace with the chat ID of channel A
@@ -49,11 +50,11 @@ def forward_messages_callback(client, callback_query):
                     msg_count = 0
 
         # Notify the user when the forwarding is done
-        client.send_message(callback_query.message.chat.id, "Message forwarding is complete!")
+        client.send_message(message.chat.id, "Message forwarding is complete!")
 
     except Exception as e:
         print(str(e))
-        client.send_message(callback_query.message.chat.id, "An error occurred while forwarding messages. Please try again.")
+        client.send_message(message.chat.id, "An error occurred while forwarding messages. Please try again.")
 
 # Run the bot
 app.run()
