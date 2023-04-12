@@ -28,8 +28,8 @@ def forward_messages(message, client):
         start_link, end_link = message.text.split()
 
         # Get the chat IDs of channels A and B
-        chat_a_id = -1001234567890 # Replace with the chat ID of channel A
-        chat_b_id = -1009876543210 # Replace with the chat ID of channel B
+        chat_a_id = -1001668076927 # Replace with the chat ID of channel A
+        chat_b_id = -1001713208670 # Replace with the chat ID of channel B
 
         # Check if bot is a member of channels A and B
         chat_a_member = client.get_chat_member(chat_id=chat_a_id, user_id=app.get_me().id)
