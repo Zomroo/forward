@@ -36,7 +36,7 @@ def forward_command(client, message):
 
     # Wait for the starting and ending links
     while True:
-        reply = client.listen(filters.private & filters.regex(r'https://t.me/c/\d+/\d+'))
+        reply = app.listen(filters.private & filters.regex(r'https://t.me/c/\d+/\d+'))
         link = reply.text
         if not starting_link:
             starting_link = link
