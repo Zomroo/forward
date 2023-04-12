@@ -52,23 +52,20 @@ def message(update, context):
         ))
         # Forward messages
         count = 0
-        for message in bot.get_history(chat_id=channel_a_id):
-            if message.message_id == context.user_data['start_message_id']:
-                # Start forwarding
-                update.message.reply_text('Started forwarding messages...')
-                while message.message_id <= context.user_data['end_message_id']:
-                    # Forward message
-                    bot.forward_message(chat_id=channel_b_id, from_chat_id=channel_a_id, message_id=message.message_id)
-                    count += 1
-                    # Check if break is needed
-                    if count % 200 == 0:
-                        update.message.reply_text('Forwarded {} messages. Taking a 5-minute break...'.format(count))
-                        time.sleep(300)
-                    # Get next message
-                    message = bot.get_messages(chat_id=channel_a_id, message_id=message.message_id + 1)
-                # End forwarding
-                update.message.reply_text('Finished forwarding messages. Total messages forwarded: {}.'.format(count))
-                break
+        message = bot.get_messages(chat_id=channel_a_id, message_id=context.user_data['start_message_id'])
+        while message.message_id <= context.user_data['end_message_id']:
+            # Forward message
+            bot.forward_message(chat_id=channel_b_id, from_chat_id=channel_a_id, message_id=message.message_id)
+            count += 1
+            # Check if break is needed
+            if count % 200 == 0:
+                update.message.reply_text('Forwarded {} messages. Taking a 5-minute break...'.format(count))
+                time.sleep(300)
+            # Get next message
+            message = bot.get_messages(chat_id=channel_a_id, message_id=message.message_id + 1)
+        # End forwarding
+        update.message.reply_text('Finished forwarding messages. Total messages forwarded: {}.'.format(count))
+
 
 
 # Main function
