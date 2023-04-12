@@ -21,7 +21,7 @@ def start_command(client, message):
 @app.on_message(filters.command("fr"))
 def forward_command(client, message):
     client.send_message(message.chat.id, "Please provide the starting and ending message links in channel A, separated by a space.")
-    client.add_handler(MessageHandler(forward_messages_callback, filters.regex(r'^\S+\s+\S+$'), pass_user_data=True), message.chat.id, timeout=30)
+    client.add_handler(MessageHandler(forward_messages_callback, filters.regex(r'^\S+\s+\S+$')), message.chat.id, timeout=30)
 
 # Forward messages callback function
 def forward_messages_callback(client, message, user_data):
