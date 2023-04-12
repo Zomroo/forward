@@ -17,13 +17,13 @@ def forward_message(client, message):
     client.send_message(chat_id=message.chat.id, text="Please forward the message from the group you want to forward.")
 
     # Wait for the user to forward the message and get the message ID
-    @app.on_message(filters.forwarded_from(source_chat_id) & filters.private)
+    @app.on_message(filters.forwarded & filters.private & filters.from_chat(source_chat_id))
     def forward_first_message(client, message):
         first_message_id = message.message_id
         client.send_message(chat_id=message.chat.id, text="Please forward the last message you want to forward.")
 
         # Wait for the user to forward the last message and get the message ID
-        @app.on_message(filters.forwarded_from(source_chat_id) & filters.private)
+        @app.on_message(filters.forwarded & filters.private & filters.from_chat(source_chat_id))
         def forward_last_message(client, message):
             last_message_id = message.message_id
             client.send_message(chat_id=message.chat.id, text="Forwarding messages...")
