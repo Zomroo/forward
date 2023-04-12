@@ -15,14 +15,17 @@ app = Client('my_bot', api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 def start_command(client, message):
     client.send_message(message.chat.id, 'Hello! I am your forwarder bot. Use /fr to forward messages.')
 
+
 # Define the forward command
 @app.on_message(filters.command('fr'))
 def forward_command(client, message):
     # Check if the bot is in both channels
     channel_a_id = -1001668076927
     channel_b_id = -1001713208670
-    if not (client.get_chat_member(channel_a_id, 'me').status == 'member' and 
-            client.get_chat_member(channel_b_id, 'me').status == 'member'):
+    try:
+        client.get_chat_member(channel_a_id, 'me')
+        client.get_chat_member(channel_b_id, 'me')
+    except Exception as e:
         client.send_message(message.chat.id, 'Please add me to both channels.')
         return
 
@@ -44,14 +47,14 @@ def forward_command(client, message):
 
     # Get the messages between the starting and ending links
     messages = []
-    for message_link in client.iter_history(channel_a_id, offset_date=0):
-        if message_link.link == starting_link:
+    for message in client.iter_history(channel_a_id):
+        if message.link == starting_link:
             break
-        elif message_link.link == ending_link:
+        elif message.link == ending_link:
             messages.reverse()
             break
         else:
-            messages.append(message_link)
+            messages.append(message)
 
     # Forward the messages to channel B, with a 5-minute delay every 200 messages
     for i, message in enumerate(messages):
@@ -60,6 +63,7 @@ def forward_command(client, message):
             time.sleep(300)
 
     client.send_message(message.chat.id, 'All done! The messages have been forwarded to channel B.')
+
 
 # Start the client
 app.run()
