@@ -1,69 +1,44 @@
-import os
-import time
-from pyrogram import Client, filters
+import pyrogram
 
-# Replace with your own values
-API_ID = 16844842
-API_HASH = 'f6b0ceec5535804be7a56ac71d08a5d4'
-BOT_TOKEN = '5931504207:AAF-jzKC8USclrFYrtcaeAZifQcmEcwFNe4'
+api_id = 16844842 # Replace with your Telegram API ID
+api_hash = "f6b0ceec5535804be7a56ac71d08a5d4" # Replace with your Telegram API hash
+bot_token = "5931504207:AAF-jzKC8USclrFYrtcaeAZifQcmEcwFNe4" # Replace with your bot token
 
-app = Client('my_bot', api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+app = pyrogram.Client("my_bot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
 
+# Add your source and destination chat IDs here
+source_chat_id = -1001668076927
+destination_chat_id = -1001713208670
 
-# Define the start command
-@app.on_message(filters.command('start'))
-def start_command(client, message):
-    client.send_message(message.chat.id, 'Hello! I am your forwarder bot. Use /fr to forward messages.')
+# Forward the message from source chat
+@app.on_message(pyrogram.Filters.command("forward"))
+def forward_message(client, message):
+    client.send_message(chat_id=message.chat.id, text="Please forward the message from the group you want to forward.")
 
+    # Wait for the user to forward the message and get the message ID
+    @app.on_message(pyrogram.Filters.forwarded_from(source_chat_id) & pyrogram.Filters.private)
+    def forward_first_message(client, message):
+        first_message_id = message.message_id
+        client.send_message(chat_id=message.chat.id, text="Please forward the last message you want to forward.")
 
-# Define the forward command
-@app.on_message(filters.command('fr'))
-def forward_command(client, message):
-    # Check if the bot is in both channels
-    channel_a_id = -1001668076927
-    channel_b_id = -1001713208670
-    try:
-        client.get_chat_member(channel_a_id, 'me')
-        client.get_chat_member(channel_b_id, 'me')
-    except Exception as e:
-        client.send_message(message.chat.id, 'Please add me to both channels.')
-        return
+        # Wait for the user to forward the last message and get the message ID
+        @app.on_message(pyrogram.Filters.forwarded_from(source_chat_id) & pyrogram.Filters.private)
+        def forward_last_message(client, message):
+            last_message_id = message.message_id
+            client.send_message(chat_id=message.chat.id, text="Forwarding messages...")
 
-    # Ask for the starting and ending message links
-    client.send_message(message.chat.id, 'Please provide the starting and ending message links.')
-    starting_link = None
-    ending_link = None
+            # Forward all the messages from the first forwarded message to the last forwarded message
+            with app:
+                messages = client.get_messages(source_chat_id, offset_id=last_message_id, limit=last_message_id - first_message_id + 1)
+                for message in reversed(messages):
+                    client.send_message(chat_id=destination_chat_id, text=message.text)
 
-    # Wait for the starting and ending links
-    while True:
-        reply = app.listen(app.resolve_filter('private') & app.resolve_filter('regex("https://t.me/c/\\\\d+/\\\\d+")'), timeout=3600)
-        link = reply.text
-        if not starting_link:
-            starting_link = link
-            client.send_message(message.chat.id, 'Got it. Now please provide the ending message link.')
-        else:
-            ending_link = link
-            break
+    # Stop listening for messages after the first message has been forwarded
+    app.stop()
 
-    # Get the messages between the starting and ending links
-    messages = []
-    for message in client.iter_history(channel_a_id):
-        if message.link == starting_link:
-            break
-        elif message.link == ending_link:
-            messages.reverse()
-            break
-        else:
-            messages.append(message)
+# Start the bot
+@app.on_message(pyrogram.Filters.command("start"))
+def start(client, message):
+    client.send_message(chat_id=message.chat.id, text="Hello! I am a bot that can forward messages from one group to another. To use me, just send /forward command and follow the instructions.")
 
-    # Forward the messages to channel B, with a 5-minute delay every 200 messages
-    for i, message in enumerate(messages):
-        client.forward_messages(channel_b_id, message.chat.id, message.message_id)
-        if (i + 1) % 200 == 0:
-            time.sleep(300)
-
-    client.send_message(message.chat.id, 'All done! The messages have been forwarded to channel B.')
-
-
-# Start the client
 app.run()
