@@ -24,9 +24,9 @@ def handle_message(update, context):
     # check if the bot is waiting for a message
     if context.user_data.get('waiting_for_message', False):
         # check if the message being forwarded has any attachments
-        if update.message.effective_attachment:
+        if update.message.effective_attachment is not None:
             # loop through all attachments and forward each one to the specified channel
-            for attachment in update.message.effective_attachment or []:
+            for attachment in update.message.effective_attachment:
                 if isinstance(attachment, telegram.Video):
                     context.bot.send_video(chat_id=CHANNEL_ID,
                                            video=attachment.file_id,
@@ -56,6 +56,7 @@ def handle_message(update, context):
     else:
         # if the bot is not waiting for a message, ignore the incoming message
         pass
+
 
 def main():
     # create a new bot object using the token
