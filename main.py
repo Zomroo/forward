@@ -1,59 +1,65 @@
-from pyrogram import Client, filters
-from pyrogram.types import Message
+import os
 import time
+from pyrogram import Client, filters
 
 # Replace with your own values
 API_ID = 16844842
 API_HASH = 'f6b0ceec5535804be7a56ac71d08a5d4'
 BOT_TOKEN = '5931504207:AAF-jzKC8USclrFYrtcaeAZifQcmEcwFNe4'
-CHANNEL_A_ID = -1001668076927
-CHANNEL_B_ID = -1001713208670
-
 
 app = Client('my_bot', api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 
-# Start command handler
+# Define the start command
 @app.on_message(filters.command('start'))
-async def start_handler(client, message):
-    await message.reply_text('Hello! Send /fr to start forwarding messages.')
+def start_command(client, message):
+    client.send_message(message.chat.id, 'Hello! I am your forwarder bot. Use /fr to forward messages.')
 
-
-# Forward command handler
+# Define the forward command
 @app.on_message(filters.command('fr'))
-async def forward_handler(client, message):
-    # Check if the user is authorized to use the bot
-    if message.chat.id not in [CHANNEL_A_ID, CHANNEL_B_ID]:
-        await message.reply_text('You are not authorized to use this bot.')
+def forward_command(client, message):
+    # Check if the bot is in both channels
+    channel_a_id = -1001668076927
+    channel_b_id = -1001713208670
+    if not (client.get_chat_member(channel_a_id, 'me').status == 'member' and 
+            client.get_chat_member(channel_b_id, 'me').status == 'member'):
+        client.send_message(message.chat.id, 'Please add me to both channels.')
         return
 
     # Ask for the starting and ending message links
-    await message.reply_text('Please send the starting message link.')
-    starting_link_message = await app.listen(filters.text & filters.chat(message.chat.id))
+    client.send_message(message.chat.id, 'Please provide the starting and ending message links.')
+    starting_link = None
+    ending_link = None
 
-    await message.reply_text('Please send the ending message link.')
-    ending_link_message = await app.listen(filters.text & filters.chat(message.chat.id))
+    # Wait for the starting and ending links
+    while True:
+        reply = client.listen(filters.private & filters.regex(r'https://t.me/c/\d+/\d+'))
+        link = reply.text
+        if not starting_link:
+            starting_link = link
+            client.send_message(message.chat.id, 'Got it. Now please provide the ending message link.')
+        else:
+            ending_link = link
+            break
 
-    # Get the message IDs from the links
-    starting_message_id = int(starting_link_message.text.split('/')[-1])
-    ending_message_id = int(ending_link_message.text.split('/')[-1])
+    # Get the messages between the starting and ending links
+    messages = []
+    for message_link in client.iter_history(channel_a_id, offset_date=0):
+        if message_link.link == starting_link:
+            break
+        elif message_link.link == ending_link:
+            messages.reverse()
+            break
+        else:
+            messages.append(message_link)
 
-    # Determine the direction of the forwarding
-    if message.chat.id == CHANNEL_A_ID:
-        source_channel_id = CHANNEL_A_ID
-        target_channel_id = CHANNEL_B_ID
-    else:
-        source_channel_id = CHANNEL_B_ID
-        target_channel_id = CHANNEL_A_ID
+    # Forward the messages to channel B, with a 5-minute delay every 200 messages
+    for i, message in enumerate(messages):
+        client.forward_messages(channel_b_id, message.chat.id, message.message_id)
+        if (i + 1) % 200 == 0:
+            time.sleep(300)
 
-    # Forward messages
-    for message_id in range(starting_message_id, ending_message_id + 1):
-        message = await client.get_messages(source_channel_id, message_id)
-        await client.send_message(target_channel_id, message)
+    client.send_message(message.chat.id, 'All done! The messages have been forwarded to channel B.')
 
-        # Take a break every 200 messages
-        if message_id % 200 == 0:
-            time.sleep(300)  # 5 minutes
-
-
+# Start the client
 app.run()
