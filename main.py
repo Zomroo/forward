@@ -61,6 +61,9 @@ def forward_command(client, message):
             app.remove_handler(get_first_message_link)
             app.remove_handler(get_last_message_link)
 
+            # Remove the last message handler
+            app.remove_handler(get_last_message_link)
+
         # Add the filter
         app.add_handler(get_last_message_link)
 
