@@ -1,4 +1,6 @@
 import pyrogram
+from pyrogram import filters
+
 
 api_id = 16844842 # Replace with your Telegram API ID
 api_hash = "f6b0ceec5535804be7a56ac71d08a5d4" # Replace with your Telegram API hash
