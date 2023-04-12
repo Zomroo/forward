@@ -1,47 +1,71 @@
-import pyrogram
-from pyrogram import filters
+from pyrogram import Client, filters
+from pyrogram.types import Message
+from pyrogram.errors import BadRequest
 
 api_id = 16844842 # Replace with your Telegram API ID
 api_hash = "f6b0ceec5535804be7a56ac71d08a5d4" # Replace with your Telegram API hash
 bot_token = "5931504207:AAF-jzKC8USclrFYrtcaeAZifQcmEcwFNe4" # Replace with your bot token
 
-app = pyrogram.Client("my_bot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
+app = Client(
+    "my_bot",
+    api_id=api_id,
+    api_hash=api_hash,
+    bot_token=bot_token
+)
 
-# Add your source and destination chat IDs here
-source_chat_id = -1001668076927
-destination_chat_id = -1001713208670
+# Define the group IDs
+source_group_id = -1001668076927  # replace with the source group ID
+destination_group_id = -1001713208670  # replace with the destination group ID
 
-# Forward the message from source chat
+# Define the start command
+@app.on_message(filters.command("start"))
+def start_command(client, message):
+    message.reply_text("Hello! I'm a bot to forward messages from one group to another group or channel.")
+
+# Define the forward command
 @app.on_message(filters.command("forward"))
-def forward_message(client, message):
-    client.send_message(chat_id=message.chat.id, text="Please forward the message from the group you want to forward.")
+def forward_command(client, message):
+    # Ask for the first message link
+    message.reply_text("Please send me the link of the first message you want to forward.")
 
-    # Wait for the user to forward the message and get the message ID
-    @app.on_message(filters.forwarded & filters.private & filters.chat(source_chat_id))
-    def forward_first_message(client, message):
-        first_message_id = message.message_id
-        client.send_message(chat_id=message.chat.id, text="Please forward the last message you want to forward.")
+    # Define a filter to get the first message link
+    @app.on_message(filters.text & filters.private & filters.user(message.from_user.id))
+    def get_first_message_link(client, message):
+        first_message_link = message.text
 
-        # Wait for the user to forward the last message and get the message ID
-        @app.on_message(filters.forwarded & filters.private & filters.chat(source_chat_id))
-        def forward_last_message(client, message):
-            last_message_id = message.message_id
-            client.send_message(chat_id=message.chat.id, text="Forwarding messages...")
+        # Ask for the last message link
+        message.reply_text("Please send me the link of the last message you want to forward.")
 
-            # Forward all the messages from the first forwarded message to the last forwarded message
-            messages = client.get_messages(source_chat_id, offset_id=last_message_id, limit=last_message_id - first_message_id + 1)
-            for message in reversed(messages):
-                client.send_message(chat_id=destination_chat_id, text=message.text)
+        # Define a filter to get the last message link
+        @app.on_message(filters.text & filters.private & filters.user(message.from_user.id))
+        def get_last_message_link(client, message):
+            last_message_link = message.text
 
-            # Inform the user that the forwarding has been completed
-            client.send_message(chat_id=message.chat.id, text="Messages forwarded successfully.")
+            # Get the first and last message IDs
+            try:
+                first_message_id = client.get_messages(source_group_id, search=first_message_link).id
+                last_message_id = client.get_messages(source_group_id, search=last_message_link).id
+            except BadRequest:
+                message.reply_text("Invalid message link. Please try again.")
+                return
 
-    # Don't stop the app after the first message has been forwarded
-    # app.stop()
+            # Forward the messages
+            try:
+                messages = client.get_messages(source_group_id, offset_id=first_message_id-1, limit=last_message_id-first_message_id+1)
+                for message in messages:
+                    client.send_message(destination_group_id, text=message.text)
+            except BadRequest:
+                message.reply_text("Error forwarding messages. Please try again.")
+
+            # Remove the filters
+            app.remove_handler(get_first_message_link)
+            app.remove_handler(get_last_message_link)
+
+        # Add the filter
+        app.add_handler(get_last_message_link)
+
+    # Add the filter
+    app.add_handler(get_first_message_link)
 
 # Start the bot
-@app.on_message(filters.command("start"))
-def start(client, message):
-    client.send_message(chat_id=message.chat.id, text="Hello! I am a bot that can forward messages from one group to another. To use me, just send /forward command and follow the instructions.")
-
 app.run()
