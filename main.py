@@ -2,6 +2,7 @@ import telegram
 import telegram.ext
 import time
 
+
 # Telegram API token
 token = '5931504207:AAF-jzKC8USclrFYrtcaeAZifQcmEcwFNe4'
 
@@ -51,7 +52,7 @@ def message(update, context):
         ))
         # Forward messages
         count = 0
-        for message in bot.iter_history(channel_a_id):
+        for message in bot.get_history(chat_id=channel_a_id):
             if message.message_id == context.user_data['start_message_id']:
                 # Start forwarding
                 update.message.reply_text('Started forwarding messages...')
@@ -64,10 +65,11 @@ def message(update, context):
                         update.message.reply_text('Forwarded {} messages. Taking a 5-minute break...'.format(count))
                         time.sleep(300)
                     # Get next message
-                    message = bot.get_messages(chat_id=channel_a_id, message_ids=message.message_id + 1)
+                    message = bot.get_messages(chat_id=channel_a_id, message_id=message.message_id + 1)
                 # End forwarding
                 update.message.reply_text('Finished forwarding messages. Total messages forwarded: {}.'.format(count))
                 break
+
 
 # Main function
 def main():
