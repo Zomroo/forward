@@ -29,13 +29,15 @@ def forward_message(client, message):
             client.send_message(chat_id=message.chat.id, text="Forwarding messages...")
 
             # Forward all the messages from the first forwarded message to the last forwarded message
-            with app:
-                messages = client.get_messages(source_chat_id, offset_id=last_message_id, limit=last_message_id - first_message_id + 1)
-                for message in reversed(messages):
-                    client.send_message(chat_id=destination_chat_id, text=message.text)
+            messages = client.get_messages(source_chat_id, offset_id=last_message_id, limit=last_message_id - first_message_id + 1)
+            for message in reversed(messages):
+                client.send_message(chat_id=destination_chat_id, text=message.text)
 
-    # Stop listening for messages after the first message has been forwarded
-    app.stop()
+            # Inform the user that the forwarding has been completed
+            client.send_message(chat_id=message.chat.id, text="Messages forwarded successfully.")
+
+    # Don't stop the app after the first message has been forwarded
+    # app.stop()
 
 # Start the bot
 @app.on_message(filters.command("start"))
